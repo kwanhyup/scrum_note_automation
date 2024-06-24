@@ -1,0 +1,101 @@
+function runsOnLastDayOfMonth() {//run  with  a daily trigger
+  const dt = new Date();
+  const dtv = new Date(dt.getFullYear(), dt.getMonth(), dt.getDate()).valueOf();
+  const dtldomv = new Date(dt.getFullYear(), dt.getMonth() + 1, 0).valueOf();
+  if (dtv == dtldomv) {
+    Logger.log("It's the last day of the month, trigger condition fullfilled.");
+    duplicateAndAppendUrl();
+  } else {
+    Logger.log("It's not the last day of the month, shutting down the process.");
+  }
+}
+
+function duplicateAndAppendUrl() {
+  // Get current document
+  var currentDoc = DocumentApp.getActiveDocument();
+  
+  // Duplicate current document
+  var duplicatedDoc = DriveApp.getFileById(currentDoc.getId()).makeCopy();
+  duplicatedDoc.addEditor("qt-sls-sonic@googlegroups.com");
+  
+  // Get current month and year
+  var currentDate = new Date();
+  var monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+  var currentMonth = monthNames[currentDate.getMonth()];
+  var currentYear = currentDate.getFullYear();
+  
+  // Rename duplicated document
+  var newDocName = currentMonth + ", " + currentYear;
+  duplicatedDoc.setName(newDocName);
+  
+  // Get URL of duplicated document
+  var newDocUrl = duplicatedDoc.getUrl();
+  
+  // Append URL as hyperlink to current document
+  var body = currentDoc.getBody();
+  var hyperlink = body.appendParagraph(newDocName);
+  hyperlink.setLinkUrl(newDocUrl);
+  removeWorklogsContent();
+}
+
+function removeWorklogsContent() {
+  // Get the active Google Document
+  var doc = DocumentApp.getActiveDocument();
+  
+  // Get the body of the document
+  var body = doc.getBody();
+  
+  // Get all the paragraphs in the body
+  var paragraphs = body.getParagraphs();
+  
+  // Flag to indicate whether to remove content
+  var removeContent = false;
+  
+  // Iterate through all paragraphs
+  for (var i = 0; i < paragraphs.length; i++) {
+    var paragraph = paragraphs[i];
+    
+    // Check if paragraph is a Heading 2
+    if (paragraph.getHeading() == DocumentApp.ParagraphHeading.HEADING2) {
+      // Check if the heading is "Worklogs"
+      if (paragraph.getText() == "Worklogs") {
+        // Set flag to start removing content
+        removeContent = true;
+        continue; // Skip removing the "Worklogs" heading itself
+      } else {
+        // If it's not "Worklogs", stop removing content
+        removeContent = false;
+      }
+    }
+    
+    // Remove content if the flag is true
+    if (removeContent) {
+      // Remove the paragraph
+      paragraph.removeFromParent();
+    } else {
+      // Check if paragraph contains a table
+      var childElements = paragraph.getNumChildren();
+      for (var j = 0; j < childElements; j++) {
+        var child = paragraph.getChild(j);
+        if (child.getType() == DocumentApp.ElementType.TABLE) {
+          // Remove the table
+          child.removeFromParent();
+        }
+      }
+    }
+  }
+  removeTablesExceptLast()
+}
+
+function removeTablesExceptLast() {
+  var doc = DocumentApp.getActiveDocument();
+  var body = doc.getBody();
+  var tables = body.getTables();
+  
+  // Remove all tables except the last one
+  for (var i = 0; i < tables.length - 1; i++) {
+    var table = tables[i];
+    table.removeFromParent();
+  }
+}
+
