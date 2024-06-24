@@ -1,0 +1,80 @@
+function isHolidayInMexico() {
+  var today = new Date();
+  var calendarId = "en.mexican#holiday@group.v.calendar.google.com"; // The ID of the "Holidays in Mexico" calendar
+
+  var events = Calendar.Events.list(calendarId, {
+    timeMin: today.toISOString(),
+    timeMax: today.toISOString(),
+    singleEvents: true,
+    orderBy: "startTime"
+  });
+
+  if (events.items.length > 0) {
+    // Check if today's date matches any holiday event
+    for (var i = 0; i < events.items.length; i++) {
+      var event = events.items[i];
+      var startDate = new Date(event.start.dateTime);
+      var endDate = new Date(event.end.dateTime);
+
+      if (today >= startDate && today <= endDate) {
+        break
+      }
+    }
+  }
+  copyAndPasteTable()
+}
+
+
+function copyAndPasteTable() {
+  // Set up the days that shouldn't be activated
+  var currentDate = new Date();
+  var dayOfWeek = currentDate.getDay();
+  if (dayOfWeek === 5 || dayOfWeek === 6 || dayOfWeek === 0) {
+    Logger.log("It's the weekend. Skipping the main functionality.");
+    return;
+  }
+  // Get the active Google Doc
+  var doc = DocumentApp.getActiveDocument();
+  
+  // Get the body of the document
+  var body = doc.getBody();
+  
+  // Find the last table in the document
+  var tables = body.getTables();
+  var lastTable = tables[tables.length - 1];
+  
+  // Find the heading 2 'Worklogs' in the document by iterating through paragraphs
+  var paragraphs = body.getParagraphs();
+  var worklogsHeading = null;
+  for (var i = 0; i < paragraphs.length; i++) {
+    if (paragraphs[i].getHeading() == DocumentApp.ParagraphHeading.HEADING2 && paragraphs[i].getText() == 'Worklogs') {
+      worklogsHeading = paragraphs[i];
+      break;
+    }
+  }
+  
+  if (worklogsHeading) {
+    // Copy the last table
+    var copiedTable = lastTable.copy();
+    
+    // Insert the copied table after the 'Worklogs' heading
+    var worklogsIndex = body.getChildIndex(worklogsHeading);
+    body.insertTable(worklogsIndex + 1, copiedTable);
+
+    // Get today's date
+    var today = new Date();
+
+    // Format the date as "MMM dd, yyyy"
+    var formattedDate = Utilities.formatDate(today, Session.getScriptTimeZone(), "MMM dd, yyyy");
+    
+    // Insert the formatted date at the top of the pasted table as heading 3
+    var dateParagraph = body.insertParagraph(worklogsIndex + 1, formattedDate);
+    dateParagraph.setHeading(DocumentApp.ParagraphHeading.HEADING3);
+    
+    // Apply background color and border radius to the date paragraph
+    dateParagraph.setBackgroundColor('#e0e0e0'); // Grey background color
+
+  } else {
+    Logger.log("Heading 'Worklogs' not found in the document.");
+  }
+}
